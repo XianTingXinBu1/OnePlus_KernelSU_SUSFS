@@ -1710,6 +1710,9 @@ runs:
         CONFIG_NETFILTER_XT_MATCH_RECENT=y
         CONFIG_USER_NS=y
         CONFIG_MACVLAN=y
+        CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y
+        CONFIG_IP6_NF_NAT=y
+        CONFIG_IP6_NF_TARGET_MASQUERADE=y
         EOF
         
         if [ "${{ env.OP_RUST_BUILD }}" = "true" ]; then
