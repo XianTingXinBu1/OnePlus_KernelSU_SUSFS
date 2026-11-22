@@ -761,7 +761,10 @@ jobs:
 
           echo "::group::Build oplus include tree (soc/oplus/*)"
           INC_ROOT="$GITHUB_WORKSPACE/oplus_inc"
-          OPLUS_K="$GITHUB_WORKSPACE/vendor/oplus/kernel"
+          OPLUS_K="$CONFIG_FOLDER/vendor/oplus/kernel"
+          echo "CONFIG_FOLDER=$CONFIG_FOLDER"
+          echo "OPLUS_K=$OPLUS_K"
+          ls -d "$OPLUS_K" 2>/dev/null || echo "OPLUS_K missing"
           rm -rf "$INC_ROOT"; mkdir -p "$INC_ROOT/soc/oplus"
           # OPPO 约定: <soc/oplus/X.h> 来自 vendor/oplus/kernel/<子系统>/...
           for h in $(find "$OPLUS_K" -name "*.h" -not -path "*/bazel/*" 2>/dev/null); do
