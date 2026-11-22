@@ -794,11 +794,22 @@ jobs:
           fi
           echo "::endgroup::"
 
+          echo "::group::Patch TP source"
+          # 3497/3563 行无条件使用 syna_spi_pdev / syna_dev_early_suspend，
+          # 但它们的声明/定义被 #if 包着。把声明处的 #if 改成 #if 1。
+          # 只匹配带括号那行（2937/3588 是不带括号的变体，不动）。
+          sed -i '/^#if (IS_ENABLED(CONFIG_DRM_OPLUS_PANEL_NOTIFY)/s|.*|#if 1 /* patched: need syna_spi_pdev */|' "$TP_DIR/syna_tcm2.c"
+          echo "--- patch 结果 ---"
+          grep -n "patched: need syna_spi_pdev" "$TP_DIR/syna_tcm2.c"
+          echo "--- 该处上下文 ---"
+          sed -n '3428,3434p' "$TP_DIR/syna_tcm2.c"
+          echo "::endgroup::"
+
           echo "::group::Build TP module"
           PATH="$CLANG_BIN:$PATH" make -C "$COMMON_KERNEL_FOLDER" O="$OUT_DIR" \
             ARCH=arm64 \
             M="$TP_DIR" \
-            KCFLAGS="-I$INC_ROOT $EXTRA_INC -DCONFIG_TOUCHPANEL_NOTIFY=1 -DCONFIG_TOUCHPANEL_OPLUS_MODULE=1 -DCONFIG_OF=1 -DCONFIG_QCOM_PANEL_EVENT_NOTIFIER=1" \
+            KCFLAGS="-I$INC_ROOT $EXTRA_INC -DCONFIG_TOUCHPANEL_NOTIFY=1 -DCONFIG_TOUCHPANEL_OPLUS_MODULE=1 -DCONFIG_OF=1" \
             CC="$CLANG_BIN/clang" \
             LD="$COMMON_KERNEL_FOLDER/ld-wrapper" \
             HOSTLD="$COMMON_KERNEL_FOLDER/ld-wrapper" \
