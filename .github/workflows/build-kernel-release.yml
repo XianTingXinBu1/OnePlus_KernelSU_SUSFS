@@ -759,10 +759,23 @@ jobs:
           ls "$OUT_DIR/include/generated" 2>/dev/null | head -5
           echo "::endgroup::"
 
+          echo "::group::Build oplus include tree (soc/oplus/*)"
+          INC_ROOT="$GITHUB_WORKSPACE/oplus_inc"
+          OPLUS_K="$GITHUB_WORKSPACE/vendor/oplus/kernel"
+          rm -rf "$INC_ROOT"; mkdir -p "$INC_ROOT/soc/oplus"
+          # OPPO 约定: <soc/oplus/X.h> 来自 vendor/oplus/kernel/<子系统>/...
+          for h in $(find "$OPLUS_K" -name "*.h" -not -path "*/bazel/*" 2>/dev/null); do
+            ln -sf "$h" "$INC_ROOT/soc/oplus/$(basename "$h")" 2>/dev/null
+          done
+          ls "$INC_ROOT/soc/oplus" | wc -l
+          ls -l "$INC_ROOT/soc/oplus/device_info.h" 2>/dev/null
+          echo "::endgroup::"
+
           echo "::group::Build TP module"
           PATH="$CLANG_BIN:$PATH" make -C "$COMMON_KERNEL_FOLDER" O="$OUT_DIR" \
             ARCH=arm64 \
             M="$TP_DIR" \
+            KCFLAGS="-I$INC_ROOT" \
             CC="$CLANG_BIN/clang" \
             LD="$COMMON_KERNEL_FOLDER/ld-wrapper" \
             HOSTLD="$COMMON_KERNEL_FOLDER/ld-wrapper" \
