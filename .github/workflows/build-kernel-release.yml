@@ -711,6 +711,51 @@ jobs:
           debug: ${{ inputs.debug }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      # ===== 临时实验步骤：探测 TP 驱动源码并尝试编译 .ko =====
+      - name: 🔧 Probe and build TP driver module
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          echo "::group::Probe locations"
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          echo "COMMON_KERNEL_FOLDER=$COMMON_KERNEL_FOLDER"
+          find "$GITHUB_WORKSPACE" -maxdepth 7 -type d -name "synaptics_hbp" 2>/dev/null | head -5
+          find "$GITHUB_WORKSPACE" -maxdepth 7 -type d -name "oplus_touchscreen_v2" 2>/dev/null | head -5
+          ls -d "$COMMON_KERNEL_FOLDER/out" 2>/dev/null && ls "$COMMON_KERNEL_FOLDER/out" 2>/dev/null | head -15
+          echo "::endgroup::"
+
+          TP_DIR=$(find "$GITHUB_WORKSPACE" -maxdepth 7 -type d -name "synaptics_hbp" 2>/dev/null | head -1)
+          if [ -z "$TP_DIR" ]; then
+            echo "::warning::synaptics_hbp source not found, skip"
+            exit 0
+          fi
+          echo "TP_DIR=$TP_DIR"
+
+          OUT_DIR="$COMMON_KERNEL_FOLDER/out"
+          if [ ! -d "$OUT_DIR" ]; then
+            CFG=$(find "$COMMON_KERNEL_FOLDER" -maxdepth 3 -name ".config" 2>/dev/null | head -1)
+            [ -n "$CFG" ] && OUT_DIR=$(dirname "$CFG")
+          fi
+          echo "OUT_DIR=$OUT_DIR"
+          ls -la "$OUT_DIR" 2>/dev/null | head -10
+
+          mkdir -p "$COMMON_KERNEL_FOLDER/drivers/input/touchscreen"
+          ln -sfn "$TP_DIR" "$COMMON_KERNEL_FOLDER/drivers/input/touchscreen/synaptics_hbp"
+          ls -l "$COMMON_KERNEL_FOLDER/drivers/input/touchscreen/" | head -5
+
+          echo "::group::Build TP module"
+          make -C "$COMMON_KERNEL_FOLDER" O="$OUT_DIR" \
+            M="drivers/input/touchscreen/synaptics_hbp" \
+            CONFIG_TOUCHSCREEN_SYNA_TCM2=m \
+            KBUILD_MODPOST_WARN=1 \
+            modules -k 2>&1 | tail -80
+          echo "::endgroup::"
+
+          echo "::group::Result"
+          find "$TP_DIR" -name "*.ko" -exec ls -lh {} \; 2>/dev/null
+          echo "::endgroup::"
+
       - name: 📊 Build statistics
         id: build-stat
         if: always()
