@@ -769,7 +769,10 @@ jobs:
           # OPPO 约定: <soc/oplus/X.h> 来自 vendor/oplus/kernel/<子系统>/...
           # OPPO 的 bazel 用自定义 include_prefix 把某些子系统映射成 soc/oplus/<别名>/,
           # 这里把所有头文件同时铺到若干候选子目录, 让任何变体路径都能命中
-          ALL_H=$(find "$OPLUS_K" -name "*.h" -not -path "*/bazel/*" 2>/dev/null)
+          # 排除 dfr/qcom/dump_device_info 里的同名壳头文件，它会覆盖真正的
+          # device_info.h 导致 struct manufacture_info 只有前向声明
+          ALL_H=$(find "$OPLUS_K" -name "*.h" -not -path "*/bazel/*" \
+                    -not -path "*/dfr/qcom/dump_device_info/*" 2>/dev/null)
           for sub in "" system include boot utils sysfs mm dfr power; do
             [ -n "$sub" ] && mkdir -p "$INC_ROOT/soc/oplus/$sub"
             for h in $ALL_H; do
