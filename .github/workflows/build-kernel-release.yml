@@ -783,11 +783,22 @@ jobs:
           ls -l "$INC_ROOT/soc/oplus/system/boot_mode.h" 2>/dev/null
           echo "::endgroup::"
 
+          echo "::group::Locate panel_event_notifier.h"
+          PE=$(find "$KERNEL_PLATFORM_FOLDER" -name "panel_event_notifier.h" 2>/dev/null | head -1)
+          echo "PE=$PE"
+          EXTRA_INC=""
+          if [ -n "$PE" ]; then
+            # 头文件形如 .../include/linux/soc/qcom/panel_event_notifier.h -> 取 .../include
+            EXTRA_INC="-I$(echo "$PE" | sed 's|/linux/soc/qcom/panel_event_notifier.h||')"
+            echo "EXTRA_INC=$EXTRA_INC"
+          fi
+          echo "::endgroup::"
+
           echo "::group::Build TP module"
           PATH="$CLANG_BIN:$PATH" make -C "$COMMON_KERNEL_FOLDER" O="$OUT_DIR" \
             ARCH=arm64 \
             M="$TP_DIR" \
-            KCFLAGS="-I$INC_ROOT -DCONFIG_TOUCHPANEL_NOTIFY=1 -DCONFIG_TOUCHPANEL_OPLUS_MODULE=1 -DCONFIG_OF=1 -DCONFIG_QCOM_PANEL_EVENT_NOTIFIER=1" \
+            KCFLAGS="-I$INC_ROOT $EXTRA_INC -DCONFIG_TOUCHPANEL_NOTIFY=1 -DCONFIG_TOUCHPANEL_OPLUS_MODULE=1 -DCONFIG_OF=1 -DCONFIG_QCOM_PANEL_EVENT_NOTIFIER=1" \
             CC="$CLANG_BIN/clang" \
             LD="$COMMON_KERNEL_FOLDER/ld-wrapper" \
             HOSTLD="$COMMON_KERNEL_FOLDER/ld-wrapper" \
