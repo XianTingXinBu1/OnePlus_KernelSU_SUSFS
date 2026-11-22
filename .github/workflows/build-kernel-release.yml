@@ -744,12 +744,21 @@ jobs:
           ln -sfn "$TP_DIR" "$COMMON_KERNEL_FOLDER/drivers/input/touchscreen/synaptics_hbp"
           ls -l "$COMMON_KERNEL_FOLDER/drivers/input/touchscreen/" | head -5
 
+          echo "::group::Locate clang"
+          CLANG_BIN=$(find "$COMMON_KERNEL_FOLDER/prebuilts/clang/host/linux-x86" -maxdepth 2 -type d -name "clang-r*" 2>/dev/null | head -1)/bin
+          echo "CLANG_BIN=$CLANG_BIN"
+          ls "$CLANG_BIN"/clang* 2>/dev/null | head -3
+          echo "::endgroup::"
+
           echo "::group::Build TP module"
-          make -C "$COMMON_KERNEL_FOLDER" O="$OUT_DIR" \
-            M="drivers/input/touchscreen/synaptics_hbp" \
+          PATH="$CLANG_BIN:$PATH" make -C "$COMMON_KERNEL_FOLDER" O="$OUT_DIR" \
+            M="$TP_DIR" \
+            CC="$CLANG_BIN/clang" \
+            LD="$COMMON_KERNEL_FOLDER/ld-wrapper" \
+            HOSTLD="$COMMON_KERNEL_FOLDER/ld-wrapper" \
             CONFIG_TOUCHSCREEN_SYNA_TCM2=m \
             KBUILD_MODPOST_WARN=1 \
-            modules -k 2>&1 | tail -80
+            modules -k 2>&1 | tail -100
           echo "::endgroup::"
 
           echo "::group::Result"
