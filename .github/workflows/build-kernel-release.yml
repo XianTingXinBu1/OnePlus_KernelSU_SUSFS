@@ -767,11 +767,17 @@ jobs:
           ls -d "$OPLUS_K" 2>/dev/null || echo "OPLUS_K missing"
           rm -rf "$INC_ROOT"; mkdir -p "$INC_ROOT/soc/oplus"
           # OPPO 约定: <soc/oplus/X.h> 来自 vendor/oplus/kernel/<子系统>/...
-          for h in $(find "$OPLUS_K" -name "*.h" -not -path "*/bazel/*" 2>/dev/null); do
-            ln -sf "$h" "$INC_ROOT/soc/oplus/$(basename "$h")" 2>/dev/null
+          # OPPO 的 bazel 用自定义 include_prefix 把某些子系统映射成 soc/oplus/<别名>/,
+          # 这里把所有头文件同时铺到若干候选子目录, 让任何变体路径都能命中
+          ALL_H=$(find "$OPLUS_K" -name "*.h" -not -path "*/bazel/*" 2>/dev/null)
+          for sub in "" system include boot utils sysfs mm dfr power; do
+            [ -n "$sub" ] && mkdir -p "$INC_ROOT/soc/oplus/$sub"
+            for h in $ALL_H; do
+              ln -sf "$h" "$INC_ROOT/soc/oplus/$sub/$(basename "$h")" 2>/dev/null
+            done
           done
-          ls "$INC_ROOT/soc/oplus" | wc -l
-          ls -l "$INC_ROOT/soc/oplus/device_info.h" 2>/dev/null
+          echo "headers: $(echo "$ALL_H" | wc -l), links: $(find "$INC_ROOT" -type l | wc -l)"
+          ls -l "$INC_ROOT/soc/oplus/system/boot_mode.h" 2>/dev/null
           echo "::endgroup::"
 
           echo "::group::Build TP module"
